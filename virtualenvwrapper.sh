@@ -117,10 +117,10 @@ fi
 function virtualenvwrapper_cd {
     if [ -n "${BASH:-}" ]
     then
-        builtin \cd "$@"
+        builtin cd "$@"
     elif [ -n "${ZSH_VERSION:-}" ]
     then
-        builtin \cd -q "$@"
+        builtin cd -q "$@"
     fi
 }
 
