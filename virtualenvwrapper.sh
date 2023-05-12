@@ -300,6 +300,8 @@ EOF
             echo
             echo "$output"
         fi
+    else
+        echo "virtualenvwrapper.sh: Failed to run ‘${1}’ hook"
     fi
     command \rm -f "$hook_script"
     return $result
