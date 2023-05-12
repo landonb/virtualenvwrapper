@@ -867,7 +867,9 @@ function virtualenvwrapper_get_python_version {
 
 # Prints the path to the site-packages directory for the current environment.
 function virtualenvwrapper_get_site_packages_dir {
-    "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/python" -c "import sysconfig; print(sysconfig.get_path('platlib'))"
+    typeset pyexe="$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/python"
+    [ -x "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/python" ] || pyexe="python"
+    "$pyexe" -c "import sysconfig; print(sysconfig.get_path('platlib'))"
 }
 
 # Path management for packages outside of the virtual env.
@@ -950,7 +952,15 @@ function add2virtualenv {
 #:help:cdsitepackages: change to the site-packages directory
 function cdsitepackages {
     virtualenvwrapper_verify_workon_home || return 1
-    virtualenvwrapper_verify_active_environment || return 1
+    if [ ! -n "${VIRTUAL_ENV}" ] || [ ! -d "${VIRTUAL_ENV}" ]; then
+        >&2 echo "ALERT: No virtualenv active. Using Python found in shell:"
+        if type pyenv >/dev/null 2>&1
+        then
+            >&2 printf "  %s\n" "$(pyenv version)"
+        else
+            >&2 echo "  system (pyenv not found)"
+        fi
+    fi
     typeset site_packages="`virtualenvwrapper_get_site_packages_dir`"
     virtualenvwrapper_cd_or_pushd "$site_packages/$1"
 }
