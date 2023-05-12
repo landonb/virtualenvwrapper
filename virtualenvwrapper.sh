@@ -824,7 +824,7 @@ function workon {
     unset -f deactivate >/dev/null 2>&1
 
     # Replace the deactivate() function with a wrapper.
-    eval 'deactivate () {
+    deactivate () {
         typeset env_postdeactivate_hook
         typeset old_env
 
@@ -847,7 +847,8 @@ function workon {
             unset -f deactivate >/dev/null 2>&1
         fi
 
-    }'
+    }
+    eval "$(declare -f deactivate)"
 
     VIRTUALENVWRAPPER_PROJECT_CD=$cd_after_activate virtualenvwrapper_run_hook "post_activate"
 
