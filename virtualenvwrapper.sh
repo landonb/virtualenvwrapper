@@ -607,6 +607,17 @@ function rmvirtualenv {
 
 # List the available environments.
 function virtualenvwrapper_show_workon_options {
+    # Scan local directory first.
+    if WORKON_HOME=. virtualenvwrapper_print_workon_home_venv_names >/dev/null
+    then
+        WORKON_HOME=. virtualenvwrapper_print_workon_home_venv_names
+    else
+        # Nothing found locally, so use WORKON_HOME (e.g., ~/.virtualenvs).
+        virtualenvwrapper_print_workon_home_venv_names
+    fi
+}
+
+function virtualenvwrapper_print_workon_home_venv_names {
     virtualenvwrapper_verify_workon_home || return 1
     # NOTE: DO NOT use ls or cd here because colorized versions spew control
     #       characters into the output list.
@@ -685,7 +696,11 @@ function lsvirtualenv {
 
     if $long_mode
     then
-        allvirtualenv showvirtualenv "$env_name"
+        (
+            # If virtualenv active, show virtualenvs from its parent directory.
+            [ -n "$VIRTUAL_ENV" ] && WORKON_HOME="$(dirname "$VIRTUAL_ENV")"
+            allvirtualenv showvirtualenv "$env_name"
+        )
     else
         virtualenvwrapper_show_workon_options
     fi
@@ -780,8 +795,16 @@ function workon {
     typeset env_name="$1"
     if [ "$env_name" = "" ]
     then
-        lsvirtualenv -b
-        return 1
+        if [ "$(WORKON_HOME=. virtualenvwrapper_show_workon_options)" ]
+        then
+            # Use local virtualenv with latest 'activate' modification time.
+            env_name="$(virtualenvwrapper_print_latest_local_dir_env_name)"
+        else
+            # No virtualenv in current directory, so show list of venvs
+            # from the central WORKON_HOME directory.
+            lsvirtualenv -b
+            return 1
+        fi
     elif [ "$env_name" = "." ]
     then
         # The IFS default of breaking on whitespace causes issues if there
@@ -791,13 +814,19 @@ function workon {
         unset IFS
     fi
 
+    typeset env_activate="$env_name/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate"
+
+    typeset global_workon_home="$WORKON_HOME"
+    [ -s "./$env_activate" ] && WORKON_HOME="."
+
     virtualenvwrapper_verify_workon_home || return 1
     virtualenvwrapper_verify_workon_environment "$env_name" || return 1
 
-    activate="$WORKON_HOME/$env_name/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate"
+    activate="$WORKON_HOME/$env_activate"
     if [ ! -f "$activate" ]
     then
         echo "ERROR: Environment '$WORKON_HOME/$env_name' does not contain an activate script." >&2
+        echo "- Excepted to find: '$activate'"
         return 1
     fi
 
@@ -852,9 +881,37 @@ function workon {
 
     VIRTUALENVWRAPPER_PROJECT_CD=$cd_after_activate virtualenvwrapper_run_hook "post_activate"
 
+    WORKON_HOME="$global_workon_home"
+
     return 0
 }
 
+function virtualenvwrapper_print_latest_local_dir_env_name {
+    # Default to local virtualenv with latest 'activate'.
+    # - If user does not intervene, this loads the virtualenv that
+    #   the user most recently created in the current directory.
+    # - Otherwise, if the user wants to indicate which virtualenv to
+    #   load by default, they can `touch` the 'activate' file of
+    #   their choice, e.g., `touch .venv-default/bin/activate`.
+    typeset latest_activate
+
+    # Even if `command ls` still produces colorful output, the
+    # command should see that it's being piped (so [ ! -t 0 ]),
+    # and it will not use color (and not mess up our pipeline).
+    latest_activate="$( \
+        command ls -t1 \
+        $(WORKON_HOME=. virtualenvwrapper_show_workon_options \
+            | xargs printf "%s/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate ") \
+        | head -1
+    )"
+    env_name="$( \
+        echo "$latest_activate" \
+        | sed "s#/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate\$##" \
+    )"
+    # echo "virtualenvwrapper.sh: Loading default: ‘$env_name’"
+
+    printf "%s" "$env_name"
+}
 
 # Prints the Python version string for the current interpreter.
 function virtualenvwrapper_get_python_version {
@@ -1240,6 +1297,10 @@ function cdproject {
             echo "Project directory $project_dir does not exist" 1>&2
             return 1
         fi
+    elif [ "$(dirname "$VIRTUAL_ENV")" != "$WORKON_DIR" ]
+    then
+        # I.e., virtualenv stored within Python project.
+        virtualenvwrapper_cd_or_pushd "$(dirname "$VIRTUAL_ENV")"
     else
         echo "No project set in $VIRTUAL_ENV/$VIRTUALENVWRAPPER_PROJECT_FILENAME" 1>&2
         return 1
