@@ -124,6 +124,28 @@ function virtualenvwrapper_cd {
     fi
 }
 
+function virtualenvwrapper_cd_or_pushd {
+    if [ -n "${BASH:-}" ]
+    then
+        builtin $(virtualenvwrapper_cd_or_pushd_cmd) "$@" &> /dev/null
+    elif [ -n "${ZSH_VERSION:-}" ]
+    then
+        builtin $(virtualenvwrapper_cd_or_pushd_cmd) -q "$@" &> /dev/null
+    fi
+}
+
+function virtualenvwrapper_cd_or_pushd_cmd {
+    typeset cd_cmd=cd
+
+    # Let the user choose whether to `pushd` instead of `cd`.
+    if [ "${VIRTUALENVWRAPPER_PUSHD:-}" != "" ]
+    then
+        cd_cmd=pushd
+    fi
+
+    echo "${cd_cmd}"
+}
+
 function virtualenvwrapper_expandpath {
     if [ "$1" = "" ]; then
         return 1
@@ -903,7 +925,7 @@ function cdsitepackages {
     virtualenvwrapper_verify_workon_home || return 1
     virtualenvwrapper_verify_active_environment || return 1
     typeset site_packages="`virtualenvwrapper_get_site_packages_dir`"
-    virtualenvwrapper_cd "$site_packages/$1"
+    virtualenvwrapper_cd_or_pushd "$site_packages/$1"
 }
 
 # Does a ``cd`` to the root of the currently-active virtualenv.
@@ -911,7 +933,7 @@ function cdsitepackages {
 function cdvirtualenv {
     virtualenvwrapper_verify_workon_home || return 1
     virtualenvwrapper_verify_active_environment || return 1
-    virtualenvwrapper_cd "$VIRTUAL_ENV/$1"
+    virtualenvwrapper_cd_or_pushd "$VIRTUAL_ENV/$1"
 }
 
 # Shows the content of the site-packages directory of the currently-active
@@ -1176,7 +1198,7 @@ function cdproject {
         typeset project_dir="$(cat "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_PROJECT_FILENAME")"
         if [ ! -z "$project_dir" ]
         then
-            virtualenvwrapper_cd "$project_dir"
+            virtualenvwrapper_cd_or_pushd "$project_dir"
         else
             echo "Project directory $project_dir does not exist" 1>&2
             return 1
