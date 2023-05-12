@@ -244,6 +244,7 @@ function virtualenvwrapper_tempfile {
 # Run the hooks
 function virtualenvwrapper_run_hook {
     typeset hook_script
+    typeset output
     typeset result
 
     hook_script="$(virtualenvwrapper_tempfile ${1}-hook)" || return 1
@@ -252,15 +253,17 @@ function virtualenvwrapper_run_hook {
     # we can change the working directory. This avoids having the
     # Python 3 interpreter decide that its "prefix" is the virtualenv
     # if we happen to be inside the virtualenv when we start.
-    ( \
+    output="$( \
         virtualenvwrapper_cd "$WORKON_HOME" &&
         "$VIRTUALENVWRAPPER_PYTHON" -m 'virtualenvwrapper.hook_loader' \
             ${HOOK_VERBOSE_OPTION:-} --script "$hook_script" "$@" \
-    )
+        2>&1 \
+    )"
     result=$?
 
     if [ $result -eq 0 ]
     then
+        printf "%s" "$output"
         if [ ! -f "$hook_script" ]
         then
             echo "ERROR: virtualenvwrapper_run_hook could not find temporary file $hook_script" 1>&2
@@ -271,14 +274,32 @@ function virtualenvwrapper_run_hook {
         source "$hook_script"
     elif [ "${1}" = "initialize" ]
     then
-        cat - 1>&2 <<EOF
-virtualenvwrapper.sh: There was a problem running the initialization hooks.
+        if ! python -c "import virtualenvwrapper" 2>/dev/null
+        then
+            cat - 1>&2 <<EOF
+ALERT: virtualenvwrapper.sh: The virtualenvwrapper Python module is not installed.
 
-If Python could not import the module virtualenvwrapper.hook_loader,
-check that virtualenvwrapper has been installed for
-VIRTUALENVWRAPPER_PYTHON=$VIRTUALENVWRAPPER_PYTHON and that PATH is
-set properly.
+- Check that virtualenvwrapper has been installed for
+    VIRTUALENVWRAPPER_PYTHON=$VIRTUALENVWRAPPER_PYTHON
+  and that PATH is set properly.
+
+- Or maybe you just need to call \`pyenv shell <pyvers>\`
+  or something.
+
+virtualenvwrapper.sh has been loaded, but hooks are disabled.
+Hooks will work again if you install virtualenvwrapper into the
+current environment, or if you change to a Python environment
+wherein you previously installed the virtualenvwrapper module.
 EOF
+        else
+            cat - 1>&2 <<EOF
+ERROR: virtualenvwrapper.sh: There was an unknown problem running the initialization hooks.
+
+- Please check the following Python output for clues. Good luck!
+EOF
+            echo
+            echo "$output"
+        fi
     fi
     command \rm -f "$hook_script"
     return $result
