@@ -102,8 +102,6 @@ then
     elif [ -n "$ZSH_VERSION" ]
     then
         export VIRTUALENVWRAPPER_SCRIPT="$0"
-    else
-        export VIRTUALENVWRAPPER_SCRIPT="${.sh.file}"
     fi
 fi
 
