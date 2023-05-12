@@ -602,12 +602,15 @@ function virtualenvwrapper_show_workon_options {
     # 4. Replace each slash with a newline to show the output one name per line.
     # 5. Eliminate any lines with * on them because that means there
     #    were no envs.
-    (virtualenvwrapper_cd "$WORKON_HOME" && echo */$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate) 2>/dev/null \
+    (virtualenvwrapper_cd "$WORKON_HOME" &&
+      echo */$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate &&
+      echo .*/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate
+    ) 2>/dev/null \
         | command \tr "\n" " " \
         | command \sed "s|/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate |/|g" \
         | command \tr "/" "\n" \
         | command \sed "/^[[:space:]]*$/d" \
-        | (unset GREP_OPTIONS; command \grep -E -v '^\*$') 2>/dev/null
+        | (unset GREP_OPTIONS; command \grep -E -v '^\.?\*$') 2>/dev/null
 }
 
 function _lsvirtualenv_usage {
