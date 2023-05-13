@@ -1,116 +1,181 @@
 ..   -*- mode: rst -*-
 
-#################
-virtualenvwrapper
-#################
+####################################################
+virtualenvwrapper 🙃 *forked* for local venv support
+####################################################
 
-virtualenvwrapper is a set of extensions to Ian Bicking's `virtualenv
-<http://pypi.python.org/pypi/virtualenv>`_ tool.  The extensions include
-wrappers for creating and deleting virtual environments and otherwise
-managing your development workflow, making it easier to work on more
-than one project at a time without introducing conflicts in their
-dependencies.
+This is a fork of Doug Hellmann's `virtualenvwrapper
+<https://github.com/python-virtualenvwrapper/virtualenvwrapper>`__
+that supports project-local Python virtualenv directories.
 
-**Warning:** The 5.x release requires virtualenv 20+
+This fork checks the current directory for virtualenvs first,
+before falling back on the typical ``~/.virtualenvs`` directory
+that *virtualenvwrapper* manages.
 
-========
-Features
-========
+==============
+Added Features
+==============
 
-1.  Organizes all of your virtual environments in one place.
+----------------------
+Local-aware ``workon``
+----------------------
 
-2.  Wrappers for creating, copying and deleting environments, including
-    user-configurable hooks.
+This fork features a more flexible ``workon`` function.
 
-3.  Use a single command to switch between environments.
+- The upstream *virtualenvwrapper* ``workon`` uses the
+  ``WORKON_HOME`` environ as the base for the virtualenv directories.
 
-4.  Tab completion for commands that take a virtual environment as
-    argument.
+  - The environ defaults to ``~/.virtualenvs``, so, e.g., calling
+    ``workon acme`` will activate the ``~/.virtualenvs/acme`` virtualenv.
 
-5. User-configurable hooks for all operations.
+  - But what if you want to stash a virtualenv in a project
+    directory?
 
-6. Plugin system for more creating sharable extensions.
+    - E.g., say I have a project called ``wonka`` where I
+      created the virtualenv locally, e.g.,::
 
-Rich Leland has created a short `screencast
-<https://vimeo.com/5894881>`__ showing off the features of
-virtualenvwrapper.
+        $ cd /path/to/wonka
+        $ python3 -m venv .venv
+
+      Then an easier way to enter the virtualenv would be::
+
+        $ cd /path/to/wonka
+        $ workon
+
+      Where ``workon`` in this instance calls, e.g.,::
+
+        $ . .venv/bin/activate
+
+      This is different than the normal *virtualenvwrapper*
+      behavior, where a bare ``workon`` lists all the virtualenv
+      directories under ``WORKON_HOME``. This fork just assumes
+      you want to activate a virtualenv for the current project.
+
+  - In summary, this fork's ``workon`` first looks for a local
+    virtualenv (in the current directory), and it activates that
+    if present. (And, if not, it'll defer to classic *virtualenvwrapper*
+    ``workon`` behavior and look in ``WORKON_HOME``.)
+
+-----------------------------
+Handling multiple local venvs
+-----------------------------
+
+What if your local project has more than one virtualenv?
+
+- E.g., suppose I have two ``pyproject.toml`` files for the
+  project:
+
+  - There's the conventional config, ``wonka/pyproject.toml``,
+    which installs all dependencies normally.
+
+  - But there's also a special config, say,
+    ``wonka/.editable/pyproject.toml``, which installs some
+    dependencies in editable mode.
+
+- To get started, I'll create two separate virtualenv directories::
+
+      $ cd /path/to/wonka
+
+      $ python3 -m venv .venv-prod
+      $ . .venv-prod/bin/activate
+      $ poetry install
+      $ deactivate
+
+      $ python3 -m venv .venv-dev
+      $ . .venv-dev/bin/activate
+      $ poetry -C .editable/ install
+      $ deactivate
+
+- And now I'd like ``workon`` to still work without a name argument:
+
+  - When I call ``workon``, I want it to activate either ``.venv-prod``
+    or ``.venv-dev``.
+
+  - This fork activates the local virtualenv with the most recently
+    touched ``activate`` file.
+
+  - In the example above, because '.venv-dev' was created second,
+    ``workon`` will activate '.venv-dev'.
+
+    - If you wanted ``workon`` to pick the other virtualenv,
+      simply ``touch`` it, e.g.,::
+
+        touch .venv-prod/bin/activate
+
+      and now a bare ``workon`` will pick '.venv-prod'.
+
+  - Furthermore, tab-completion should only apply to the local
+    virtualenv directories, e.g.,::
+
+      $ workon <TAB>
+      .venv-dev     .venv-prod
+
+    As opposed to showing what's under ``~/.virtualenvs``
+    (or whatever you've set ``WORKON_HOME`` to).
+
+- In the event that the local directory does not contain any
+  virtualenv subdirectories, then ``WORKON_HOME`` will be probed,
+  like *virtualenvwrapper* normally does.
+
+---------------------------------
+Using ``pushd`` instead of ``cd``
+---------------------------------
+
+If you'd like the ``cd`` commands to use ``pushd``, not ``cd``, set::
+
+  VIRTUALENVWRAPPER_PUSHD=1
+
+(or to any nonempty string).
+
+- This applies to the three ``cd`` commands::
+
+    cdproject
+    cdsitepackages
+    cdvirtualenv
+
+---------------------
+Creating a virtualenv
+---------------------
+
+The classic ``mkvirtualenv`` from *virtualenvwrapper* still
+works, e.g.,::
+
+  $ mkvirtualenv -a /path/to/wonka wonka
+
+But you might find it simpler to use the builtin ``venv``
+module, which has been much improved over the years, e.g.,::
+
+  $ cd /path/to/wonka
+  $ python3 -m venv .venv/
+
+Your choice. The difference being if you want your virtualenv
+in a centrally-managed location (like ``~/.virtualenvs``) then
+use ``mkvirtualenv``. But if you'd like to keep the virtualenv
+within the project directory, create it with the ``venv`` module.
+
+-------------
+Minor changes
+-------------
+
+- Improve error messaging about missing ``virtualenvwrapper`` Python module,
+  and when hooks fail.
+
+- ``cdsitepackages`` now works when virtualenv is not active.
+
+- Add support for dot-prefixed virtualenv names.
+
+--------------
+Anything else?
+--------------
+
+Nope. Really, this fork is all about a glorified ``workon`` command
+which lets you mix local and centralized virtualenvs.
 
 ============
 Installation
 ============
 
-See the `project documentation
-<https://virtualenvwrapper.readthedocs.io/en/latest/>`__ for
-installation and setup instructions.
+Please refer to the `original README document
+<https://github.com/landonb/virtualenvwrapper/README-python-virtualenvwrapper.txt>`__
+for Installation instructions and further information.
 
-Supported Shells
-================
-
-virtualenvwrapper is a set of shell *functions* defined in Bourne
-shell compatible syntax.  It is tested under ``bash`` and
-``zsh``.  It may work with other shells, so if you find that it does
-work with a shell not listed here please let us know by opening a
-`ticket on GitHub
-<https://github.com/python-virtualenvwrapper/virtualenvwrapper/issues>`_.
-If you can modify it to work with another shell, without completely
-rewriting it, send a pull request through the `GitHub project page
-<https://github.com/python-virtualenvwrapper/virtualenvwrapper/>`_.  If
-you write a clone to work with an incompatible shell, let us know and
-we will link to it from this page.
-
-Python Versions
-===============
-
-virtualenvwrapper is tested under Python 3.8 - 3.11.
-
-=======
-Support
-=======
-
-Join the `virtualenvwrapper Google Group
-<http://groups.google.com/group/virtualenvwrapper/>`__ to discuss
-issues and features.
-
-Report bugs via the `bug tracker on GitHub
-<https://github.com/python-virtualenvwrapper/virtualenvwrapper/issues>`__.
-
-Shell Aliases
-=============
-
-Since virtualenvwrapper is largely a shell script, it uses shell
-commands for a lot of its actions.  If your environment makes heavy
-use of shell aliases or other customizations, you may encounter
-issues.  Before reporting bugs in the bug tracker, please test
-*without* your aliases enabled.  If you can identify the alias causing
-the problem, that will help make virtualenvwrapper more robust.
-
-==========
-Change Log
-==========
-
-The `release history`_ is part of the project documentation.
-
-.. _release history: https://virtualenvwrapper.readthedocs.io/en/latest/history.html
-
-
-=======
-License
-=======
-
-Copyright Doug Hellmann, All Rights Reserved
-
-Permission to use, copy, modify, and distribute this software and its
-documentation for any purpose and without fee is hereby granted,
-provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in
-supporting documentation, and that the name of Doug Hellmann not be used
-in advertising or publicity pertaining to distribution of the software
-without specific, written prior permission.
-
-DOUG HELLMANN DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
-EVENT SHALL DOUG HELLMANN BE LIABLE FOR ANY SPECIAL, INDIRECT OR
-CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
-USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
