@@ -1,8 +1,8 @@
 ..   -*- mode: rst -*-
 
-####################################################
-virtualenvwrapper 🙃 *forked* for local venv support
-####################################################
+##############################################
+virtualenvwrapper 🙃 with *local venv* support
+##############################################
 
 This is a fork of Doug Hellmann's `virtualenvwrapper
 <https://github.com/python-virtualenvwrapper/virtualenvwrapper>`__
