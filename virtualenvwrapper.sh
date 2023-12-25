@@ -926,6 +926,20 @@ function virtualenvwrapper_get_python_version {
 function virtualenvwrapper_get_site_packages_dir {
     typeset pyexe="$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/python"
     [ -x "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/python" ] || pyexe="python"
+    # 2023-12-25: "Deprecated since version 3.10:
+    #              distutils.sysconfig has been merged into sysconfig."
+    # - Previous implementation:
+    #   "$pyexe" -c "import distutils.sysconfig;
+    #                print(distutils.sysconfig.get_python_lib())"
+    # - get_path candidates:
+    #    >>> import sysconfig
+    #    >>> sysconfig.get_path_names()
+    #    ('stdlib', 'platstdlib', 'purelib', 'platlib', 'include', 'scripts', 'data')
+    # - With 'platlib' and 'purelib' being the site-packages path,
+    #   both the same path in my experience so far [2023-12-25].
+    # REFER:
+    # https://docs.python.org/3.11/library/sysconfig.html#sysconfig.get_path
+    # https://docs.python.org/3.11/library/sysconfig.html#sysconfig.get_path_names
     "$pyexe" -c "import sysconfig; print(sysconfig.get_path('platlib'))"
 }
 
