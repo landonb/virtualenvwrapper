@@ -302,6 +302,10 @@ EOF
         fi
     else
         echo "virtualenvwrapper.sh: Failed to run ‘${1}’ hook"
+        echo "HINT: Check results of:"
+        echo "  virtualenvwrapper_cd \"$WORKON_HOME\" &&"
+        echo "    \"$VIRTUALENVWRAPPER_PYTHON\" -m 'virtualenvwrapper.hook_loader' \\"
+        echo "    ${HOOK_VERBOSE_OPTION:-} --script \"$hook_script\" \"$@\""
     fi
     command \rm -f "$hook_script"
     return $result
