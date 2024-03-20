@@ -231,13 +231,13 @@ function virtualenvwrapper_tempfile {
     typeset file
 
     file="$(virtualenvwrapper_mktemp -t virtualenvwrapper-$suffix-XXXXXXXXXX)"
-    touch "$file"
+    touch -- "$file"
     if [ $? -ne 0 ] || [ -z "$file" ] || [ ! -f "$file" ]
     then
         echo "ERROR: virtualenvwrapper could not create a temporary file name." 1>&2
         return 1
     fi
-    echo $file
+    echo "$file"
     return 0
 }
 
@@ -702,7 +702,7 @@ function lsvirtualenv {
     then
         (
             # If virtualenv active, show virtualenvs from its parent directory.
-            [ -n "$VIRTUAL_ENV" ] && WORKON_HOME="$(dirname "$VIRTUAL_ENV")"
+            [ -n "$VIRTUAL_ENV" ] && WORKON_HOME="$(dirname -- "$VIRTUAL_ENV")"
             allvirtualenv showvirtualenv "$env_name"
         )
     else
@@ -720,7 +720,7 @@ function showvirtualenv {
             echo "showvirtualenv [env]"
             return 1
         fi
-        env_name=$(basename "$VIRTUAL_ENV")
+        env_name=$(basename -- "$VIRTUAL_ENV")
     fi
 
     virtualenvwrapper_run_hook "get_env_details" "$env_name"
@@ -814,7 +814,7 @@ function workon {
         # The IFS default of breaking on whitespace causes issues if there
         # are spaces in the env_name, so change it.
         IFS='%'
-        env_name="$(basename $(pwd))"
+        env_name="$(basename -- "$(pwd)")"
         unset IFS
     fi
 
@@ -866,7 +866,7 @@ function workon {
         virtualenvwrapper_run_hook "pre_deactivate"
 
         env_postdeactivate_hook="$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/postdeactivate"
-        old_env=$(basename "$VIRTUAL_ENV")
+        old_env=$(basename -- "$VIRTUAL_ENV")
 
         # Call the original function.
         virtualenv_deactivate $1
@@ -1092,7 +1092,7 @@ function cpvirtualenv {
                 echo "Please provide a valid virtualenv to copy."
                 return 1
             fi
-            src_name="$(basename "$src")"
+            src_name="$(basename -- "$src")"
         else
            src="$WORKON_HOME/$src_name"
         fi
@@ -1182,7 +1182,7 @@ function setvirtualenvproject {
     fi
     if [ ! -d "$venv" ]
     then
-        echo "No virtualenv $(basename $venv)" 1>&2
+        echo "No virtualenv $(basename -- "$venv")" 1>&2
         return 1
     fi
 
@@ -1193,7 +1193,7 @@ function setvirtualenvproject {
         return 1
     fi
 
-    echo "Setting project for $(basename $venv) to $prj"
+    echo "Setting project for $(basename -- "$venv") to $prj"
     echo "$prj" > "$venv/$VIRTUALENVWRAPPER_PROJECT_FILENAME"
 }
 
@@ -1315,10 +1315,10 @@ function cdproject {
             echo "Project directory $project_dir does not exist" 1>&2
             return 1
         fi
-    elif [ "$(dirname "$VIRTUAL_ENV")" != "$WORKON_DIR" ]
+    elif [ "$(dirname -- "$VIRTUAL_ENV")" != "$WORKON_DIR" ]
     then
         # I.e., virtualenv stored within Python project.
-        virtualenvwrapper_cd_or_pushd "$(dirname "$VIRTUAL_ENV")"
+        virtualenvwrapper_cd_or_pushd "$(dirname -- "$VIRTUAL_ENV")"
     else
         echo "No project set in $VIRTUAL_ENV/$VIRTUALENVWRAPPER_PROJECT_FILENAME" 1>&2
         return 1
@@ -1397,8 +1397,8 @@ function mktmpenv {
     cat - >> "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_ENV_BIN_DIR/postdeactivate" <<EOF
 if [ -f "$VIRTUAL_ENV/README.tmpenv" ]
 then
-    echo "Removing temporary environment:" $(basename "$VIRTUAL_ENV")
-    rmvirtualenv $(basename "$VIRTUAL_ENV")
+    echo "Removing temporary environment:" $(basename -- "$VIRTUAL_ENV")
+    rmvirtualenv $(basename -- "$VIRTUAL_ENV")
 fi
 EOF
 }
