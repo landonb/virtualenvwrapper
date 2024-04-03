@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+6.1.0
+-----
+
+* Look for `./.virtualenvwrapper/postactivate` and
+  `./.virtualenvwrapper/predeactivate` hook scripts. Same effect as
+  :ref:`scripts-postactivate` and :ref:`scripts-predeactivate`.
+
 6.0.0.0a5
 ---------
 
