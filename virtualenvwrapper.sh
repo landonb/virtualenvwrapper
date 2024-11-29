@@ -102,6 +102,11 @@ then
     elif [ -n "$ZSH_VERSION" ]
     then
         export VIRTUALENVWRAPPER_SCRIPT="$0"
+    else
+        # This was originally for ksh, which assumed a particular filename.
+        export VIRTUALENVWRAPPER_SCRIPT="${.sh.file}"
+        # But ksh has since been removed, so let's also alert the user.
+        >&2 echo "ALERT: Unknown shell (not Bash or Zsh)"
     fi
 fi
 
