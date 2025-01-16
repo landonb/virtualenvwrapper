@@ -22,7 +22,8 @@ function virtualenvwrapper_load {
         # NOTE: For Zsh, I have tried to unset any auto-load completion.
         #       (via `compctl + $(echo ${_VIRTUALENVWRAPPER_API})`.
         #       But this does not appear to work / triggers a crash.
-        source "$VIRTUALENVWRAPPER_SCRIPT"
+        source "$VIRTUALENVWRAPPER_SCRIPT" \
+            || return 1
         VIRTUALENVWRAPPER_LAZY_LOADED=1
     fi
 }
@@ -32,10 +33,16 @@ function virtualenvwrapper_setup_lazy_loader {
     typeset venvw_name
     for venvw_name in $(echo ${_VIRTUALENVWRAPPER_API})
     do
+        # Note that virtualenvwrapper_load redefines $venvw_name.
+        # - But if loading fails, the shim might still exist,
+        #   and calling it might start an infinite loop.
         eval "
 function $venvw_name {
-    virtualenvwrapper_load
-    ${venvw_name} \"\$@\"
+    if virtualenvwrapper_load; then
+        ${venvw_name} \"\$@\"
+    else
+        >&2 echo \"ERROR: virtualenvwrapper failed to load\"
+    fi
 }
 "
     done
